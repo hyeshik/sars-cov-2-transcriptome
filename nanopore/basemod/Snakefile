@@ -1,0 +1,105 @@
+SUBGENOMIC_SUBSETS = """
+    E M N ORF1ab ORF3a ORF6 ORF7a ORF7b ORF8 S nsp3Ctrunc nsp2trunc
+""".split()
+
+SUBGENOMIC_GUPPY_DIR = '/blaze/hyeshik/p/npworks/20200222-Vero-SCV2/subguppy-sgRNAs/VeroInf24h.{orf}-single'
+REFERENCE_FULL_LENGTH = '/blaze/hyeshik/p/npworks/20200222-Vero-SCV2/refs/SARS-CoV-2.fa'
+
+CONTROL_FAST5_DIR = '/blaze/hyeshik/p/npworks/20200222-Vero-SCV2/subguppy-leader/IVT1-single/'
+FULL_FAST5_DIR = '/blaze/hyeshik/p/npworks/20200222-Vero-SCV2/subguppy-leader/VeroInf24h-single/'
+FULL_LENGTH_GROUP = 'SARSCoV2FullGenomeCorrected_000'
+
+rule all:
+    input:
+        expand('flg-tombo/.{orf}.{group}.tombo.index', orf=SUBGENOMIC_SUBSETS, group=[FULL_LENGTH_GROUP]),
+        expand('flg-stats/{orf}.tombo.stats', orf=SUBGENOMIC_SUBSETS),
+        expand('flg-stats/{orf}-mostsignif.pdf', orf=SUBGENOMIC_SUBSETS),
+        expand('flg-stats/results-{orf}/{orf}.coverage.control.plus.bedgraph', orf=SUBGENOMIC_SUBSETS),
+        'flg-stats/IVT1-denovo.5mC.tombo.stats',
+        'flg-stats/full-denovo.5mC.tombo.stats'
+
+rule resquiggle:
+    output: 'flg-tombo/.{{orf}}.{}.tombo.index'.format(FULL_LENGTH_GROUP)
+    threads: 8
+    run:
+        guppy_dir = SUBGENOMIC_GUPPY_DIR.format(orf=wildcards.orf)
+        shell('(cd flg-tombo && \
+                ln -sf {guppy_dir} {wildcards.orf} && \
+                tombo resquiggle {wildcards.orf}/ {REFERENCE_FULL_LENGTH} \
+                        --corrected-group {FULL_LENGTH_GROUP} \
+                        --processes {threads} --num-most-common-errors 5)')
+
+
+rule detect_modifications:
+    input: 'flg-tombo/.{{orf}}.{}.tombo.index'.format(FULL_LENGTH_GROUP)
+    output:
+        'flg-stats/{orf}.tombo.stats',
+        'flg-stats/{orf}-perread.tombo.per_read_stats'
+    threads: 18
+    shell: '(cd flg-stats && \
+             tombo detect_modifications model_sample_compare --rna \
+                --fast5-basedirs ../flg-tombo/{wildcards.orf}/ \
+                --statistics-file-basename {wildcards.orf} \
+                --control-fast5-basedirs {CONTROL_FAST5_DIR} \
+                --num-most-significant-stored 200 \
+                --processes {threads} --sample-only-estimates \
+                --per-read-statistics-basename {wildcards.orf}-perread \
+                --corrected-group {FULL_LENGTH_GROUP})'
+
+rule detect_modifications_IVT1_model:
+    output: 'flg-stats/IVT1-denovo.5mC.tombo.stats'
+    threads: 36
+    shell: '(cd flg-stats && \
+            tombo detect_modifications alternative_model --rna \
+               --alternate-bases 5mC \
+               --fast5-basedirs {CONTROL_FAST5_DIR} \
+               --statistics-file-basename IVT1-denovo \
+               --num-most-significant-stored 200 \
+               --processes 36 \
+               --per-read-statistics-basename IVT1-denovo-perread \
+               --corrected-group {FULL_LENGTH_GROUP})'
+
+rule detect_modifications_full_model:
+    output: 'flg-stats/full-denovo.5mC.tombo.stats'
+    threads: 36
+    shell: '(cd flg-stats && \
+            tombo detect_modifications alternative_model --rna \
+               --alternate-bases 5mC \
+               --fast5-basedirs {FULL_FAST5_DIR} \
+               --statistics-file-basename full-denovo \
+               --num-most-significant-stored 200 \
+               --processes 36 \
+               --per-read-statistics-basename full-denovo-perread \
+               --corrected-group RawGenomeCorrected_000)'
+
+rule plot_most_significant:
+    input: 'flg-stats/{orf}.tombo.stats'
+    output: 'flg-stats/{orf}-mostsignif.pdf'
+    shell: '(cd flg-stats && \
+             tombo plot most_significant --fast5-basedirs ../flg-tombo/{wildcards.orf} \
+                --control-fast5-basedirs {CONTROL_FAST5_DIR} \
+                --statistics-filename {wildcards.orf}.tombo.stats \
+                --plot-standard-model \
+                --corrected-group {FULL_LENGTH_GROUP} \
+                --pdf-filename {wildcards.orf}-mostsignif.pdf)'
+
+rule generate_text_output:
+    input: 'flg-stats/{orf}.tombo.stats'
+    output: 'flg-stats/results-{orf}/{orf}.coverage.control.plus.bedgraph'
+    shell:
+        'cd flg-stats && \
+        tombo text_output browser_files --fast5-basedirs ../flg-tombo/{wildcards.orf} \
+            --control-fast5-basedirs {CONTROL_FAST5_DIR} \
+            --statistics-filename {wildcards.orf}.tombo.stats \
+            --corrected-group {FULL_LENGTH_GROUP} \
+            --file-types dampened_fraction coverage valid_coverage \
+                fraction signal signal_sd dwell difference \
+            --browser-file-basename results-{wildcards.orf}/{wildcards.orf}'
+
+#tombo plot genome_locations --fast5-basedirs ../flg-tombo/N \
+#    --control-fast5-basedirs ~/p/npworks/20200222-Vero-SCV2/subguppy-leader/IVT1-single \
+#    --plot-standard-model \
+#    --corrected-group SARSCoV2FullGenomeCorrected_000 \
+#    --genome-locations chrSCV:29016 \
+#    --pdf-filename N-29016.pdf
+#

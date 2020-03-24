@@ -1,0 +1,17 @@
+JOBSIZE = 200
+JOBCOUNT = 130
+
+JOBNAMES = ['{:03}'.format(i) for i in range(JOBCOUNT)]
+
+rule all:
+    input:
+        expand('results/dwell-{job}.txt', job=JOBNAMES)
+
+rule collect:
+    output: 'results/dwell-{job}.txt'
+    run:
+        jobid = int(wildcards.job)
+        linestart = jobid * JOBSIZE
+        lineend = (jobid + 1) * JOBSIZE
+        shell('python extract.py {linestart} {lineend} > {output}')
+
