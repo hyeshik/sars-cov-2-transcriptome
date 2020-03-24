@@ -1,0 +1,132 @@
+STAR_OPTIONS = """\
+  --outFilterType BySJout \
+  --outFilterMultimapNmax 20 \
+  --alignSJoverhangMin 8 \
+  --alignSJDBoverhangMin 1 \
+  --outSJfilterOverhangMin 12 12 12 12 \
+  --outSJfilterCountUniqueMin 1 1 1 1 \
+  --outSJfilterCountTotalMin 1 1 1 1 \
+  --outSJfilterDistToOtherSJmin 0 0 0 0 \
+  --outFilterMismatchNmax 999 \
+  --outFilterMismatchNoverReadLmax 0.04 \
+  --scoreGapNoncan -4 \
+  --scoreGapATAC -4 \
+  --chimOutType Junctions WithinBAM HardClip \
+  --chimScoreJunctionNonGTAG 0 \
+  --alignSJstitchMismatchNmax -1 -1 -1 -1 \
+  --alignIntronMin 20 \
+  --alignIntronMax 1000000 \
+  --alignMatesGapMax 1000000 \
+  --chimSegmentMin 20 \
+  """
+
+GENE_ANNOTATION = 'references/VerVet-SARSCoV2-DRS.genome.gff3'
+STAR_INDEX = 'references/VerVet-SARSCoV2-DRS.genome.star'
+
+SAMPLES = ['VeroSCV2']
+ALIGNMENT_TYPES = ['genome', 'virus', 'virus-junctiononly']
+
+rule all:
+    input:
+        expand('alignments/{name}.{type}.bam', name=SAMPLES, type=ALIGNMENT_TYPES),
+        expand('alignments/{name}.{type}.bam.bai', name=SAMPLES, type=ALIGNMENT_TYPES),
+        expand('alignments/{name}.{type}.subsampled.bam', name=SAMPLES, type=ALIGNMENT_TYPES),
+        expand('alignments/{name}.{type}.subsampled.bam.bai', name=SAMPLES, type=ALIGNMENT_TYPES),
+        expand('jumpstats/{name}.jump-cigars.txt.gz', name=SAMPLES),
+        expand('tables/{name}.virus.coverage.txt', name=SAMPLES),
+        expand('tables/{name}.virus.pileup.txt.gz', name=SAMPLES)
+        #expand('ndup-alignments/{name}.{type}.no_duplicates.bam', name=SAMPLES, type=ALIGNMENT_TYPES),
+        #expand('ndup-alignments/{name}.{type}.no_duplicates.bam.bai', name=SAMPLES, type=ALIGNMENT_TYPES),
+
+rule align_STAR:
+    input:
+        read1='rawdata-1/{name}_1.fq.gz',
+        read2='rawdata-1/{name}_2.fq.gz'
+    output: 'alignments/{name}.genome.bam'
+    params: stardir='alignments/{name}.genome.star'
+    threads: 36
+    shell: 'mkdir -p {params.stardir}; \
+            STAR --runThreadN {threads} --genomeDir {STAR_INDEX} \
+                --readFilesIn {input.read2} {input.read1} \
+                --readFilesCommand zcat \
+                {STAR_OPTIONS} \
+                --outFileNamePrefix {params.stardir}/ \
+                --outSAMmultNmax 32 \
+                --outSAMtype BAM SortedByCoordinate \
+                --outSAMunmapped Within KeepPairs \
+                --sjdbGTFfile {GENE_ANNOTATION} \
+                --quantMode GeneCounts && \
+            ln {params.stardir}/Aligned.sortedByCoord.out.bam {output}'
+
+rule mark_duplicates:
+    input: 'alignments/{name}.bam'
+    output:
+        bam='ndup-alignments/{name}.marked_duplicates.bam',
+        metrics='metrics/{name}.duplicate_metrics.txt'
+    shell: 'picard MarkDuplicates I={input} O={output.bam} M={output.metrics} \
+                READ_NAME_REGEX=null'
+
+rule filter_duplicates:
+    input: 'ndup-alignments/{name}.marked_duplicates.bam'
+    output: 'ndup-alignments/{name}.no_duplicates.bam'
+    threads: 12
+    shell: 'samtools view -b -@ {threads} -o {output} -F 1024 {input}'
+
+rule index_bam:
+    input: '{name}.bam'
+    output: '{name}.bam.bai'
+    shell: 'samtools index {input}'
+
+rule extract_viral_mappings:
+    input:
+        bam='alignments/{name}.genome.bam',
+        bamidx='alignments/{name}.genome.bam.bai'
+    output:
+        'alignments/{name}.virus.bam'
+    threads: 36
+    shell: 'samtools view -@ {threads} -b -o {output} {input.bam} chrSCV'
+
+rule extract_cigar_containing_jumps:
+    input: 'alignments/{name}.virus.bam'
+    output: 'jumpstats/{name}.jump-cigars.txt.gz'
+    threads: 4
+    shell: 'samtools view {input} | \
+            awk \'BEGIN {{ OFS="\t"; }} \
+                  {{ if ($6 ~ /N/) print $4, $6; }}\' | \
+            bgzip -c -@ 4 /dev/stdin > {output}'
+
+rule count_jumping_sites:
+    input: 'jumpstats/{name}.jump-cigars.txt.gz'
+    output: 'jumpstats/{name}.jumps.txt.gz'
+    shell: 'zcat {input} | python _scripts/convert-cigars.py | \
+            sort -k1,2n | uniq -c | \
+            awk \'{{ OFS="\t"; }} {{ print $2, $3, $1; }}\' | \
+            bgzip -c /dev/stdin > {output}'
+
+rule calc_coverage:
+    input: 'alignments/{name}.virus.bam'
+    output: 'tables/{name}.virus.coverage.txt'
+    shell: 'bedtools genomecov -ibam {input}  -dz -split > {output}'
+
+rule pileup_reads:
+    input:
+        bam='alignments/{name}.virus.bam',
+        bamidx='alignments/{name}.virus.bam.bai',
+        reference='references/SARS-CoV-2.fa'
+    output: 'tables/{name}.virus.pileup.txt.gz'
+    shell: 'samtools mpileup -f {input.reference} {input.bam} | \
+            bgzip -c /dev/stdin > {output}'
+
+rule generate_junctiononly_bam:
+    input: 'alignments/{name}.virus.bam'
+    output: 'alignments/{name}.virus-junctiononly.bam'
+    shell: '(samtools view -H {input}; \
+             samtools view -q 100 {input} | \
+             awk \'{{ if ($6 ~ /N/) print $0; }}\') | \
+            samtools view -b -o {output}'
+
+rule generate_subsampled_bam:
+    input: 'alignments/{name}.{type}.bam'
+    output: 'alignments/{name}.{type,[^.]+}.subsampled.bam'
+    threads: 36
+    shell: 'samtools view -@ {threads} -b -o {output} -s 0.01 {input}'

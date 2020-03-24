@@ -1,0 +1,567 @@
+import pandas as pd
+import numpy as np
+import subprocess as sp
+
+ANNOTATION_VERSION = 'VerVet-SARSCoV2-DRS'
+NPTOOLS_DIR = '/blaze/hyeshik/gh/nanopore-tools'
+GUPPY_SERVER_PORT = 9292
+PICARD_CMD = 'java -jar /blaze/hyeshik/usr/picard/picard.jar'
+FASTA_SPLIT_BLAST = 100
+FASTA_SPLIT_PARTS = [format(i, '03d') for i in range(1, FASTA_SPLIT_BLAST+1)]
+
+MINIMAP2_GENOME_INDEX = 'refs/{}.genome.mm2.idx'.format(ANNOTATION_VERSION)
+MINIMAP2_TRANSCRIPTOME_INDEX = 'refs/{}.transcriptome.mm2.idx'.format(ANNOTATION_VERSION)
+MINIMAP2_VIRALGENOME_INDEX = 'refs/{}.viral_genome.mm2.idx'.format(ANNOTATION_VERSION)
+#JUNCTIONS = 'refs/{}.junctions.bed.gz'.format(ANNOTATION_VERSION)
+JUNCTIONS = 'refs/SARS-CoV-2-introns-over100.bed'
+VIRUSGENOME = 'refs/SARS-CoV-2.fa'
+VIRALTRANSCRIPTOME = 'refs/SARS-CoV-2-singlejumps.fa'
+VIRUS_LEADER_RANGE = 'refs/SARS-CoV-2-leader.bed'
+JUNCTION_FINGERPRINTS = 'refs/SARS-CoV-2-junction-fingerprints.fa'
+LANDING_POSITION_ANNOTATIONS = 'refs/SARS-CoV-2-landing-positions.bed'
+FULL_LENGTH_PROBE = 'refs/SARS-CoV-2-fulllength-probe.bed'
+FULL_LENGTH_LENGTH_LIMIT = 17000
+SGRNA_SEQUENCE = 'refs/SARS-CoV-2-sg-{orf}.fa'
+
+SCV2_SUBGENOMIC_ORFS = sp.check_output(['cut', '-f4', LANDING_POSITION_ANNOTATIONS]).decode().split()
+SCV2_ORFS = ['ORF1ab'] + SCV2_SUBGENOMIC_ORFS
+
+LEADER_HEADCUT_LENGTH = 50
+
+DATADIRS = {
+    'VeroCtl24h': 'raw/VeroCtl24h',
+    'VeroInf24h': 'raw/VeroInf24h',
+    'IVT1': 'raw/IVT1',
+}
+SAMPLES = list(DATADIRS)
+SAMPLES_VIRAL = ['VeroInf24h']
+SAMPLES_NAUTRAL = ['VeroInf24h', 'VeroCtl24h']
+SAMPLES_ALL_VIRAL = ['VeroInf24h', 'IVT1']
+SAMPLES_QC = list(DATADIRS)
+
+ANNOTATION_ORDER = pd.DataFrame([l.split('\t') for l in """\
+calibration_control	calibration_control
+rRNA	rRNA
+Mt_rRNA	Mt_rRNA
+Mt_tRNA	Mt_tRNA
+rRNA_pseudogene	rRNA
+repeat_region	repeat_region
+IG_V_gene	IG_V_gene
+ribozyme	ribozyme
+TEC	TEC
+Src	Src
+snRNA	snRNA
+scRNA	scRNA
+scaRNA	scaRNA
+snoRNA	snoRNA
+MIsc_RNA	misc_RNA
+miRNA	miRNA
+lncRNA	lncRNA
+protein_coding	protein_coding
+retained_intron	retained_intron
+transcribed_processed_pseudogene	pseudogene
+transcribed_unprocessed_pseudogene	pseudogene
+processed_pseudogene	pseudogene
+unprocessed_pseudogene	pseudogene
+transcribed_unitary_pseudogene	pseudogene
+polymorphic_pseudogene	pseudogene
+translated_unprocessed_pseudogene	pseudogene
+translated_processed_pseudogene	pseudogene
+pseudogene	pseudogene
+.	.
+nonsense_mediated_decay	nonsense_mediated_decay
+non_stop_decay	non_stop_decay
+conflict	.
+variation	.
+misc_feature	.""".splitlines()], columns=['rtype', 'rotype'])
+ANNOTATION_ORDER['order'] = np.arange(len(ANNOTATION_ORDER))
+ALIGNMENT_TYPES = ['genome']
+ALIGNMENT_TYPES_VIRAL = [
+    'viral_genome', 'viral_genome.linear', 'viral_genome.chimeric',
+    'viral_leaderoff', #'viral_transcriptome',
+]
+
+rule all:
+    input:
+        expand('alignments/{sample}.{type}.bam', sample=SAMPLES, type=ALIGNMENT_TYPES),
+        expand('alignments/{sample}.{type}.sorted.bam', sample=SAMPLES, type=ALIGNMENT_TYPES),
+        expand('alignments/{sample}.{type}.sorted.bam.bai', sample=SAMPLES, type=ALIGNMENT_TYPES),
+        expand('alignments/{sample}.{type}.bam', sample=SAMPLES_VIRAL, type=ALIGNMENT_TYPES_VIRAL),
+        expand('alignments/{sample}.{type}.sorted.bam', sample=SAMPLES_VIRAL, type=ALIGNMENT_TYPES_VIRAL),
+        expand('alignments/{sample}.{type}.sorted.bam.bai', sample=SAMPLES_VIRAL, type=ALIGNMENT_TYPES_VIRAL),
+        expand('alignments/{sample}.covleader.sorted.bam', sample=SAMPLES_VIRAL, type=ALIGNMENT_TYPES_VIRAL),
+        expand('alignments/{sample}.covleader.sorted.bam.bai', sample=SAMPLES_VIRAL, type=ALIGNMENT_TYPES_VIRAL),
+        expand('junctions/{sample}.large_deletions.bed.gz', sample=SAMPLES_VIRAL),
+        expand('junctions/{sample}.canonical_swithing_annotations.txt.gz', sample=SAMPLES_VIRAL),
+        expand('junctions/{sample}.subset-{orf}.readids', sample=SAMPLES_VIRAL, orf=SCV2_ORFS),
+        expand('subset-alignments/{sample}.viral_genome.{orf}.bam', sample=SAMPLES_VIRAL, orf=SCV2_ORFS),
+        expand('subset-alignments/{sample}.viral_genome.{orf}.bam.bai', sample=SAMPLES_VIRAL, orf=SCV2_ORFS),
+        expand('subset-alignments/{sample}.sgRNA.{orf}.fastq.gz', sample=SAMPLES_VIRAL, orf=SCV2_ORFS),
+        expand('subset-alignments/{sample}.sgRNA.{orf}.bam', sample=SAMPLES_VIRAL, orf=SCV2_ORFS),
+        expand('subset-alignments/{sample}.sgRNA.{orf}.sorted.bam', sample=SAMPLES_VIRAL, orf=SCV2_ORFS),
+        expand('subset-alignments/{sample}.sgRNA.{orf}.sorted.bam.bai', sample=SAMPLES_VIRAL, orf=SCV2_ORFS),
+        expand('stats/pycoqc.{sample}.html', sample=SAMPLES_QC),
+        expand('stats/{sample}.viral_genome.coverage.txt', sample=SAMPLES_VIRAL),
+        expand('annotations/{name}.intersect.gz', name=SAMPLES),
+        expand('annotations/{name}.summary.gz', name=SAMPLES),
+        expand('sequences/{name}.size.txt', name=SAMPLES),
+        expand('poreplex/{name}/sequencing_summary.txt', name=SAMPLES_NAUTRAL),
+        expand('subguppy-leader/{name}/sequencing_summary.txt', name=SAMPLES_VIRAL),
+        expand('subguppy-sgRNAs/{name}.{orf}/sequencing_summary.txt', name=SAMPLES_VIRAL, orf=SCV2_ORFS)
+
+rule basecall:
+    output: 'guppy/{sample}/sequencing_summary.txt'
+    threads: 10
+    params: outputdir='guppy/{sample}'
+    run:
+        datadir = DATADIRS[wildcards.sample]
+        shell('guppy_basecaller --recursive --flowcell FLO-MIN106 --kit SQK-RNA002 \
+                    -x cuda:2,3,4,5 --u_substitution 1 --reverse_sequence 1 \
+                    -i {datadir} \
+                    -s {params.outputdir} --compress_fastq --disable_pings \
+                    --gpu_runners_per_device 16 \
+                    --num_callers 32 --fast5_out --post_out')
+#        shell('guppy_basecaller_supervisor --recursive --flowcell FLO-MIN106 --kit SQK-RNA002 \
+#                    --u_substitution 1 --reverse_sequence 1 \
+#                    -i {datadir} \
+#                    -s {params.outputdir} --compress_fastq --disable_pings \
+#                    --fast5_out --post_out --num_clients 10 --port 9292')
+#        shell('(head -1 {params.outputdir}/sequencing_summary_0.txt; \
+#                for f in {params.outputdir}/sequencing_summary_*.txt; \
+#                do sed 1d $f; done) > {output}')
+
+rule merge_sequences:
+    input: 'guppy/{sample}/sequencing_summary.txt'
+    output: 'sequences/{sample}.all.fastq.gz'
+    threads: 10
+    shell: 'zcat guppy/{wildcards.sample}/*.fastq.gz | \
+            bgzip -@ {threads} -c /dev/stdin > {output}'
+
+rule map_reads_genome:
+    input:
+        seqs='sequences/{name}.all.fastq.gz',
+        idx=MINIMAP2_GENOME_INDEX
+    output: 'alignments/{name,[^.]+}.genome.bam'
+    threads: 36
+    run:
+        shell('minimap2 --junc-bed {JUNCTIONS} \
+               --MD -a -x splice -N 32 -un -t {threads} {input.idx} \
+               {input.seqs} | samtools view -b -o {output}')
+
+rule map_reads_viral_genome:
+    input:
+        seqs=lambda wc: 'sequences/{name}.{src}.fastq.gz'.format(name=wc.name, src={'viral_genome': 'viral', 'viral_leaderoff': 'viral_leaderoff'}[wc.src]),
+        ref=VIRUSGENOME
+    output: 'alignments/{name,[^.]+}.{src,viral_genome|viral_leaderoff}.bam'
+    threads: 36
+    run:
+        shell('minimap2 -k 8 -w 1 --splice -g 30000 -G 30000 -A1 -B2 -O2,24 -E1,0 \
+                -C0 -z 400,200 --no-end-flt --junc-bonus=100 -F 40000 -N 32 \
+                --splice-flank=no --max-chain-skip=40 -un \
+                --junc-bed={JUNCTIONS} --junc-bonus=50 --MD -a -p 0.7 \
+                -t {threads} {input.ref} {input.seqs} | samtools view -b -o {output}')
+
+rule map_reads_viral_transcriptome:
+    input:
+        seqs='sequences/{name}.viral.fastq.gz',
+        ref=VIRALTRANSCRIPTOME
+    output: 'alignments/{name,[^.]+}.viral_transcriptome.bam'
+    threads: 36
+    run:
+        shell('minimap2 -k 10 -w 3 --splice -g 30000 -G 30000 -A1 -B2 -O2,24 -E1,0 \
+                -C0 -z 400,200 --no-end-flt -F 40000 -N 350 \
+                --splice-flank=no --max-chain-skip=40 -un --MD -a -p 0.8 \
+                -t {threads} {input.ref} {input.seqs} | samtools view -b -o {output}')
+
+rule map_reads_transcriptome:
+    input:
+        seqs='sequences/{name}.all.fastq.gz',
+        idx=MINIMAP2_TRANSCRIPTOME_INDEX
+    output: 'alignments/{name,[^.]+}.transcriptome.bam'
+    threads: 36
+    run:
+        shell('minimap2 --MD -a -N 32 -t {threads} {input.idx} \
+               {input.seqs} | samtools view -b -o {output}')
+
+rule sort_mappings:
+    input: '{name}.bam'
+    output: '{name}.sorted.bam'
+    threads: 36
+    shell: 'samtools sort -@ {threads} -o {output} {input}'
+
+rule sort_chimeric_sequences:
+    input: 'alignments/{name}.viral_genome.bam'
+    output:
+        ids=temp('alignments/{name}.viral_genome.chimeric-ids'),
+        chimeric='alignments/{name}.viral_genome.chimeric.bam',
+        linear='alignments/{name}.viral_genome.linear.bam'
+    run:
+        shell('samtools view -f 2048 {input} | cut -f1 | sort | uniq > {output.ids}')
+        shell('{PICARD_CMD} FilterSamReads I={input} O={output.chimeric} \
+                    READ_LIST_FILE={output.ids} FILTER=includeReadList')
+        shell('{PICARD_CMD} FilterSamReads I={input} O={output.linear} \
+                    READ_LIST_FILE={output.ids} FILTER=excludeReadList')
+
+rule make_viral_sequence_fasta:
+    input: 'sequences/{name}.viral.fastq.gz'
+    output: temp('sequences/{name}.viral.fasta')
+    shell: 'seqtk seq -A {input} > {output}'
+
+rule split_viral_sequences_fasta:
+    input: 'sequences/{name}.viral.fasta'
+    output:
+        map(temp, expand('sequences/{{name}}.viral.split/{{name}}.viral.part-{part}.fasta',
+                part=FASTA_SPLIT_PARTS))
+    shell: 'fasta-splitter.pl --n-parts {FASTA_SPLIT_BLAST} \
+             --out-dir sequences/{wildcards.name}.viral.split {input}'
+
+rule align_viral_sequences_blast:
+    input: 'sequences/{name}.viral.split/{name}.viral.part-{part}.fasta'
+    output: temp('alignments/{name}.viral.blast/part-{part}.unfixed.sam.gz')
+    shell: 'blastn -subject {VIRUSGENOME} -word_size 11 -evalue 10 -penalty -3 \
+                -reward 2 -gapopen 5 -gapextend 2 -template_type optimal \
+                -template_length 18 -task dc-megablast \
+                -query {input} -outfmt 17 | gzip -c - > {output}'
+
+rule fix_blast_output:
+    input:
+        sam='alignments/{name}.viral.blast/part-{part}.unfixed.sam.gz',
+        fasta='sequences/{name}.viral.split/{name}.viral.part-{part}.fasta'
+    output: 'alignments/{name}.viral.blast/part-{part}.bam'
+    threads: 2
+    shell: 'python _scripts/fix-blast-sam.py {input.sam} {input.fasta} {VIRUSGENOME} | \
+            samtools view -@ 2 -b -o {output}'
+
+rule index_bam:
+    input: '{name}.bam'
+    output: '{name}.bam.bai'
+    shell: 'samtools index {input}'
+
+rule generate_qc:
+    input:
+        alnbam='alignments/{name}.genome.sorted.bam',
+        alnbamindex='alignments/{name}.genome.sorted.bam.bai',
+        seqsummary='guppy/{name}/sequencing_summary.txt'
+    output: 'stats/pycoqc.{name}.html'
+    shell: 'conda run -n pycoqc pycoQC -f {input.seqsummary} \
+                -a {input.alnbam} -o {output}'
+
+rule intersect_annotations:
+    input:
+        alnbam='alignments/{name}.genome.bam',
+        annotation='refs/{}.genome.gff3.gz'.format(ANNOTATION_VERSION)
+    output: 'annotations/{name}.intersect.gz'
+    shell: 'bedtools intersect -abam {input.alnbam} -b {input.annotation} \
+                -bed -wa -wb -loj -s -split -nonamecheck | \
+                cut -f1,5,4,15,21 | sort -k2,2 -k3,3nr -k4,5 | \
+                bgzip -c /dev/stdin > {output}'
+
+rule summarize_annotation:
+    input: 'annotations/{name}.intersect.gz'
+    output: 'annotations/{name}.summary.gz'
+    run:
+        import re
+
+        tbl = pd.read_csv(input[0], compression='gzip', sep='\t',
+                          names='chrom read_id mapq annotype annotxt'.split())
+
+        SUBANNOTYPES = 'gene_type gene_name transcript_type transcript_name gbkey Name biotype ID Parent'.split()
+        for subtype in SUBANNOTYPES:
+            pat = re.compile(';{}=([^;]+)'.format(subtype))
+            tbl[subtype] = tbl['annotxt'].apply(lambda x: (pat.findall(x) + [''])[0])
+
+        tbl['rtype'] = tbl.apply(lambda row: row['transcript_type'] or row['gene_type'] or
+                                 row['biotype'] or
+                                 row['gbkey'] or row['annotype'], axis=1)
+
+        tbl.loc[(tbl['biotype'] == 'protein_coding') & (tbl['chrom'] == 'MT'),
+                'biotype'] = 'Mt_protein_coding'
+
+        # Set rtype from non-GENCODE annotations
+        null_gtypes = tbl['biotype'].apply(len) == 0
+        tbl.loc[null_gtypes, 'biotype'] = tbl.loc[null_gtypes, 'rtype']
+
+        # Set mapped but still-unidentified reads with the chromosome name
+        uniden_reads = (tbl['biotype'] == '.') & (tbl['mapq'] > 0)
+        tbl.loc[uniden_reads, 'biotype'] = tbl[uniden_reads].apply(
+            lambda row: 'unidentified_' + row['chrom'], axis=1)
+
+        tbl = pd.merge(tbl, ANNOTATION_ORDER, left_on='rtype', right_on='rtype')
+
+        tbl = tbl.sort_values(['read_id', 'order', 'mapq'],
+                              ascending=[True, True, False])
+        summary = tbl.groupby('read_id').agg('first')
+        summary.reset_index()[
+            'read_id mapq annotype rotype rtype Name biotype'.split()].to_csv(
+            output[0], sep='\t', index=False, header=False, compression='gzip')
+
+rule run_poreplex:
+    input: 'guppy/{name}/sequencing_summary.txt'
+    output: 'poreplex/{name}/sequencing_summary.txt'
+    params: guppydir='guppy/{name}/workspace', poreplexdir='poreplex/{name}'
+    threads: 36
+    shell: 'poreplex -i {params.guppydir} --polya --trim-adapter -o {params.poreplexdir} \
+            --fastq -p {threads} -y'
+
+rule get_viral_reads:
+    input:
+        allreads='sequences/{name}.all.fastq.gz',
+        alignments='alignments/{name}.genome.sorted.bam',
+        alnidx='alignments/{name}.genome.sorted.bam.bai'
+    output:
+        subsetfastq='sequences/{name}.viral.fastq.gz',
+        readids=temp('tmp/{name}.viral-reads')
+    threads: 4
+    run:
+        shell('samtools view {input.alignments} chrSCV | cut -f1 | sort | uniq > {output.readids}')
+        shell('seqtk subseq {input.allreads} {output.readids} | \
+               bgzip -@ {threads} -c /dev/stdin > {output.subsetfastq}')
+
+rule get_unidentified_reads:
+    input:
+        reads='sequences/{name}.all.fastq.gz',
+        annosummary='annotations/{name}.summary.gz'
+    output:
+        mapped='unidentified/{name}.mapped-unidentified.fastq.gz',
+        unmapped='unidentified/{name}.unmapped-unidentified.fastq.gz',
+    params: tmpids='unidentified/{name}.unidentified.ids'
+    run:
+        shell("zgrep '\t\\.$' {input.annosummary} | cut -f1 > {params.tmpids}")
+        shell("seqtk subseq {input.reads} {params.tmpids} | bgzip -c /dev/stdin > {output.unmapped}")
+        shell("zgrep '\tunidentified_' {input.annosummary} | cut -f1 > {params.tmpids}")
+        shell("seqtk subseq {input.reads} {params.tmpids} | bgzip -c /dev/stdin > {output.mapped}")
+        shell('rm -f {params.tmpids}')
+
+rule extract_leader_containing_cov_reads:
+    input:
+        alignment='alignments/{name}.genome.sorted.bam',
+        alnindex='alignments/{name}.genome.sorted.bam.bai'
+    output: 'alignments/{name}.covleader.sorted.bam'
+    shell: 'bedtools intersect -abam {input.alignment} -b {VIRUS_LEADER_RANGE} -split \
+                -nonamecheck > {output}'
+
+rule make_sequence_length_table:
+    input: 'sequences/{name}.all.fastq.gz'
+    output: 'sequences/{name}.size.txt'
+    shell: 'zcat {input} | tr U T | seqtk seq -A - | faSize -tab -detailed /dev/stdin > {output}'
+
+rule count_mapped_ends:
+    input: 'alignments/{name}.transcriptome.sorted.bam'
+    output: 'end-counts/{name}-{endtype,[35]}.txt.gz'
+    threads: 4
+    shell: 'bedtools genomecov -ibam {input} -dz -strand + -{wildcards.endtype} | \
+            bgzip -@ 2 -c /dev/stdin > {output}'
+
+rule make_headsubseq_fastq:
+    input: 'sequences/{name}.viral.fastq.gz'
+    output: 'sequences/{name}.viral-headsubseq.fastq.gz'
+    threads: 8
+    shell: 'zcat {input} | \
+            awk \'NR % 2 == 1 {{ print $0; }} \
+                  NR % 2 == 0 {{ print substr($1, 1, {LEADER_HEADCUT_LENGTH}); }}\' | \
+            bgzip -c -@ 6 /dev/stdin > {output}'
+
+rule summary_read_alignment_spans:
+    input:
+        alignment='alignments/{name}.transcriptome.sorted.bam',
+        selected_transcripts='stats/transcripts-selected.txt'
+    output: 'end-counts/{name}-spans.txt.gz'
+    threads: 5
+    run:
+        import subprocess as sp
+        import pysam
+        import pandas as pd
+        import io
+        seltr = pd.read_csv(input.selected_transcripts, sep='\t')
+        seltr = set(seltr['transcript_id'])
+        with sp.Popen(['bgzip', '-@', str(threads - 1), '-c', '/dev/stdin'],
+                      stdin=sp.PIPE, stdout=open(output[0], 'wb')) as outproc:
+            writer = io.TextIOWrapper(outproc.stdin)
+
+            for aln in pysam.AlignmentFile(input.alignment):
+                if aln.reference_name not in seltr:
+                    continue
+
+                print(aln.query_name, aln.infer_read_length(),
+                      aln.reference_name, aln.reference_start, aln.reference_end,
+                      aln.reference_length, sep='\t', file=writer)
+
+            writer.flush()
+            outproc.stdin.close()
+
+rule make_subset_fast5_containing_leader:
+    input:
+        viral_alignment='alignments/{name}.viral_genome.linear.sorted.bam',
+        leader_alignment='alignments/{name}.covleader.sorted.bam',
+        guppyoutput='guppy/{name}/sequencing_summary.txt'
+    output:
+        subguppyoutput='subguppy-leader/{name}/sequencing_summary.txt',
+        tmpreadids=temp('tmp/{name}-readids-leader-containing')
+    params: guppydir='guppy/{name}', subguppydir='subguppy-leader/{name}'
+    threads: 12
+    run:
+        if 'IVT' not in wildcards.name:
+            shell('samtools view {input.leader_alignment} | cut -f1 | \
+                   sort | uniq > {output.tmpreadids}')
+        else:
+            shell('samtools view {input.viral_alignment} | cut -f1 | \
+                   sort | uniq > {output.tmpreadids}')
+
+        shell('{NPTOOLS_DIR}/fast5-managing/subset-multi-fast5/subset-multi-fast5.py \
+                -i {params.guppydir} -o {params.subguppydir} -l {output.tmpreadids} \
+                --guppy -p {threads}')
+
+rule extract_leader_sequence:
+    input: 'refs/SARS-CoV-2.fa'
+    output: 'sequences/SARS-CoV-2-leader.fa'
+    shell: 'samtools faidx {input} {LEADER_RANGE} > {output}'
+
+rule align_viral_sequences_blast_leader:
+    input:
+        readseqs='sequences/{name}.viral.split/{name}.viral.part-{part}.fasta',
+        leaderseq='sequences/SARS-CoV-2-leader.fa'
+    output: temp('alignments/{name}.viral-leader.blast/part-{part}.unfixed.sam.gz')
+    shell: 'blastn -subject {input.leaderseq} -word_size 11 -evalue 10 -penalty -3 \
+                -reward 2 -gapopen 5 -gapextend 2 -template_type optimal \
+                -template_length 16 -task dc-megablast \
+                -query {input.readseqs} -outfmt 17 | gzip -c - > {output}'
+
+rule fix_blast_output_leader:
+    input:
+        sam='alignments/{name}.viral-leader.blast/part-{part}.unfixed.sam.gz',
+        fasta='sequences/{name}.viral.split/{name}.viral.part-{part}.fasta',
+        reference='sequences/SARS-CoV-2-leader.fa'
+    output: temp('alignments/{name}.viral-leader.blast/part-{part}.bam')
+    threads: 2
+    shell: 'python _scripts/fix-blast-sam.py {input.sam} {input.fasta} {input.reference} | \
+            samtools view -@ 2 -b -o {output}'
+
+rule generate_leader_trimmed_fastq:
+    input:
+        bam=expand('alignments/{{name}}.viral-leader.blast/part-{part}.bam', part=FASTA_SPLIT_PARTS),
+        fastq='sequences/{name}.viral.fastq.gz'
+    output: 'sequences/{name}.viral_leaderoff.fastq.gz'
+    shell: "python _scripts/trim-leaders-fastq.py '{input.bam}' {input.fastq} {output}"
+
+rule unpack_fastq_leader_trimmed:
+    input: 'sequences/{name}.viral_leaderoff.fastq.gz'
+    output: temp('sequences/{name}.viral_leaderoff.fasta')
+    shell: 'seqtk seq -A {input} > {output}'
+
+rule align_leader_trimmed_body_by_blast:
+    input: 'sequences/{name}.viral_leaderoff.fasta'
+    output: 'alignments/{name}.viral_leaderoff.blast.bam'
+    threads: 4
+    shell: 'blastn -subject {VIRUSGENOME} -word_size 11 -evalue 10 -penalty -3 \
+                -reward 2 -gapopen 5 -gapextend 2 -template_type optimal \
+                -template_length 16 -task dc-megablast \
+                -query {input} -outfmt 17 | gzip -c - | \
+            python _scripts/fix-blast-sam.py /dev/stdin {input} {VIRUSGENOME} | \
+            samtools view -@ 2 -b -o {output}'
+
+rule make_coverage_viral_genome:
+    input: 'alignments/{name}.viral_genome.sorted.bam'
+    output: 'stats/{name}.viral_genome.coverage.txt'
+    shell: 'bedtools genomecov -ibam {input} -split -dz > {output}'
+
+rule convert_split_rna_fasta_to_dna:
+    input: 'sequences/{name}.viral.split/{name}.viral.part-{part}.fasta'
+    output: temp('sequences/{name}.viral.split/{name}.viral.part-{part}.dna.fasta')
+    shell: 'tr U T < {input} > {output}'
+
+rule map_junction_fingerprint_matches:
+    input:
+        fasta='sequences/{name}.viral.split/{name}.viral.part-{part}.dna.fasta',
+        reference=JUNCTION_FINGERPRINTS
+    output: temp('junctions/{name}.fingerprints/part-{part}.psl')
+    shell: 'blat -fastMap -t=dna -q=dna -tileSize=6 -stepSize=2 -oneOff=1 -minMatch=2 \
+                -minScore=30 -noHead {input.fasta} {input.reference} {output}'
+
+rule merge_junction_finterprints:
+    input: expand('junctions/{{name}}.fingerprints/part-{part}.psl', part=FASTA_SPLIT_PARTS)
+    output: 'junctions/{name}.fingerprints.psl.gz'
+    threads: 8
+    shell: 'cat {input} | bgzip -c -@ {threads} /dev/stdin > {output}'
+
+rule extract_junctions:
+    input: 'alignments/{name}.viral_genome.linear.sorted.bam'
+    output: 'junctions/{name}.large_deletions.bed.gz'
+    shell: 'python _scripts/extract-junctions.py {input} | \
+            bgzip -c /dev/stdin > {output}'
+
+rule annotate_jump_landings:
+    input: 'junctions/{name}.large_deletions.bed.gz'
+    output: 'junctions/{name}.canonical_swithing_annotations.txt.gz'
+    shell: 'zcat {input} | \
+            awk \'BEGIN {{ OFS="\t"; }} \
+                {{ if ($2 >= 55 && $2 <= 85) {{ \
+                    print $1, $3, $3+1, $4, $5, $6; \
+                }}  }}\' | \
+            sort -k4,4 -k2,2n | uniq -f3 | \
+            bedtools intersect -bed -a - -b {LANDING_POSITION_ANNOTATIONS} -wa -wb | \
+            cut -f4,10 | sed -e \'s,#[0-9]*,,g\' | sort -k1,1 | \
+            bgzip -c /dev/stdin > {output}'
+
+for orfname in SCV2_SUBGENOMIC_ORFS:
+    rule: # split_readids_by_junction_match
+        input: 'junctions/{name}.canonical_swithing_annotations.txt.gz'
+        output: 'junctions/{{name}}.subset-{orf}.readids'.format(orf=orfname)
+        params: orf=orfname
+        run:
+            matches = pd.read_csv(input[0], sep='\t', names=['read_id', 'orf'])
+            subset = matches[matches['orf'] == params.orf]
+            subset[['read_id']].drop_duplicates().to_csv(output[0],
+                sep='\t', index=False, header=False)
+
+rule get_readids_full_length:
+    input: 'alignments/{name}.viral_genome.linear.sorted.bam'
+    output: 'junctions/{name}.subset-ORF1ab.readids'
+    shell: 'bedtools intersect -abam {input} \
+                -b {FULL_LENGTH_PROBE} -bed -wa -split | \
+            awk \'{{ split($11, tok, ","); alnlen = 0; \
+                     for(i in tok) alnlen += tok[i]; \
+                     if (alnlen >= {FULL_LENGTH_LENGTH_LIMIT}) \
+                        print $4; }}\' | \
+            sort | uniq > {output}'
+
+rule subset_alignments_by_trtype:
+    input:
+        alignment='alignments/{name}.viral_genome.linear.sorted.bam',
+        readids='junctions/{name}.subset-{orf}.readids'
+    output: 'subset-alignments/{name,[^.]+}.viral_genome.{orf}.bam'
+    threads: 36
+    shell: '{PICARD_CMD} FilterSamReads I={input.alignment} \
+                O={output} READ_LIST_FILE={input.readids} \
+                FILTER=includeReadList'
+
+rule generate_reads_by_sgRNA_types:
+    input:
+        fastq='sequences/{name}.viral.fastq.gz',
+        readids='junctions/{name}.subset-{orf}.readids'
+    output: 'subset-alignments/{name,[^.]+}.sgRNA.{orf}.fastq.gz'
+    threads: 8
+    shell: 'seqtk subseq {input.fastq} {input.readids} | \
+            bgzip -c -@ {threads} /dev/stdin > {output}'
+
+rule map_subset_reads_viral_to_transcript:
+    input:
+        fastq='subset-alignments/{name}.sgRNA.{orf}.fastq.gz',
+        reference=SGRNA_SEQUENCE
+    output: 'subset-alignments/{name,[^.]+}.sgRNA.{orf}.bam'
+    threads: 36
+    shell: 'minimap2 -k 8 -w 1 --MD -a -un -t {threads} {input.reference} \
+                {input.fastq} | samtools view -b -o {output}'
+
+rule make_subset_sgRNA_fast5:
+    input:
+        viral_alignment='alignments/{name}.viral_genome.linear.sorted.bam',
+        readids='junctions/{name}.subset-{orf}.readids',
+        guppyoutput='guppy/{name}/sequencing_summary.txt'
+    output:
+        subguppyoutput='subguppy-sgRNAs/{name,[^.]+}.{orf}/sequencing_summary.txt'
+    params: guppydir='guppy/{name}', subguppydir='subguppy-sgRNAs/{name}.{orf}'
+    threads: 12
+    shell: '{NPTOOLS_DIR}/fast5-managing/subset-multi-fast5/subset-multi-fast5.py \
+                -i {params.guppydir} -o {params.subguppydir} -l {input.readids} \
+                --guppy -p {threads}'
+

@@ -1,0 +1,101 @@
+##sequence-region U13369.1 1 42999
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606
+chrRDN	Genbank	region	1	42999	.	+	.	ID=U13369.1:1..42999;Dbxref=taxon:9606;gbkey=Src;map=acrocentric p-arms;mol_type=genomic DNA
+chrRDN	Genbank	transcript	1	3656	.	+	.	ID=rna-U13369.1:1..3656;Note=5'ETS;gbkey=misc_RNA;product=5' external transcribed spacer
+chrRDN	Genbank	exon	1	3656	.	+	.	ID=exon-U13369.1:1..3656-1;Parent=rna-U13369.1:1..3656;Note=5'ETS;gbkey=misc_RNA;product=5' external transcribed spacer
+chrRDN	Genbank	sequence_feature	1	694	.	+	.	ID=id-U13369.1:1..694;Note=corresponds to GenBank Accession Numbers J00304%2C K01105%2C M17313;gbkey=misc_feature
+chrRDN	Genbank	sequence_feature	1	1	.	+	.	ID=id-U13369.1:1..1;Note=site of initiation of transcription;gbkey=misc_feature
+chrRDN	Genbank	sequence_feature	695	3656	.	+	.	ID=id-U13369.1:695..3656;Note=corresponds to GenBank Accession Numbers X17625 and X14345;gbkey=misc_feature
+chrRDN	Genbank	rRNA	3657	5527	.	+	.	ID=rna-U13369.1:3657..5527;Note=corresponds to GenBank Accession Numbers K03432 and X03205;gbkey=rRNA;product=18S ribosomal RNA
+chrRDN	Genbank	exon	3657	5527	.	+	.	ID=exon-U13369.1:3657..5527-1;Parent=rna-U13369.1:3657..5527;Note=corresponds to GenBank Accession Numbers K03432 and X03205;gbkey=rRNA;product=18S ribosomal RNA
+chrRDN	Genbank	transcript	5528	6622	.	+	.	ID=rna-U13369.1:5528..6622;Note=ITS1%3B corresponds to GenBank Accession Number X17624;gbkey=misc_RNA;product=internal transcribed spacer 1
+chrRDN	Genbank	exon	5528	6622	.	+	.	ID=exon-U13369.1:5528..6622-1;Parent=rna-U13369.1:5528..6622;Note=ITS1%3B corresponds to GenBank Accession Number X17624;gbkey=misc_RNA;product=internal transcribed spacer 1
+chrRDN	Genbank	sequence_alteration	5559	5570	.	+	.	ID=id-U13369.1:5559..5570;gbkey=variation;replace=gccgccgcc
+chrRDN	Genbank	sequence_alteration	5712	5718	.	+	.	ID=id-U13369.1:5712..5718;gbkey=variation;replace=ggggg
+chrRDN	Genbank	sequence_alteration	5712	5718	.	+	.	ID=id-U13369.1:5712..5718-2;gbkey=variation;replace=gggggg
+chrRDN	Genbank	sequence_alteration	5719	5758	.	+	.	ID=id-U13369.1:5719..5758;Note=between 11 and 20 copies of 'ag' at this location;gbkey=variation;replace=agagagagagagagagagagag
+chrRDN	Genbank	sequence_alteration	5839	5839	.	+	.	ID=id-U13369.1:5839..5839;gbkey=variation;replace=g
+chrRDN	Genbank	sequence_alteration	5892	5898	.	+	.	ID=id-U13369.1:5892..5898;gbkey=variation;replace=gggggg
+chrRDN	Genbank	sequence_alteration	6293	6293	.	+	.	ID=id-U13369.1:6293..6293;gbkey=variation;replace=a
+chrRDN	Genbank	sequence_alteration	6535	6538	.	+	.	ID=id-U13369.1:6535..6538;gbkey=variation
+chrRDN	Genbank	sequence_alteration	6548	6548	.	+	.	ID=id-U13369.1:6548..6548;gbkey=variation;replace=c
+chrRDN	Genbank	rRNA	6623	6779	.	+	.	ID=rna-U13369.1:6623..6779;gbkey=rRNA;product=5.8S ribosomal RNA
+chrRDN	Genbank	exon	6623	6779	.	+	.	ID=exon-U13369.1:6623..6779-1;Parent=rna-U13369.1:6623..6779;gbkey=rRNA;product=5.8S ribosomal RNA
+chrRDN	Genbank	sequence_conflict	6673	6673	.	+	.	ID=id-U13369.1:6673..6673;Note=This sequence differs from J01866 in the absence of GC at this position.  The absence of the GC is supported by existence of a NheI restriction site which is detected in genomic and rDNA clones;gbkey=conflict
+chrRDN	Genbank	transcript	6780	7934	.	+	.	ID=rna-U13369.1:6780..7934;Note=ITS2%3B corresponds to GenBank Accession Number X17626;gbkey=misc_RNA;product=internal transcribed spacer 2
+chrRDN	Genbank	exon	6780	7934	.	+	.	ID=exon-U13369.1:6780..7934-1;Parent=rna-U13369.1:6780..7934;Note=ITS2%3B corresponds to GenBank Accession Number X17626;gbkey=misc_RNA;product=internal transcribed spacer 2
+chrRDN	Genbank	rRNA	7935	12969	.	+	.	ID=rna-U13369.1:7935..12969;Note=corresponds to GenBank Accession Number M11167;gbkey=rRNA;product=28S ribosomal RNA
+chrRDN	Genbank	exon	7935	12969	.	+	.	ID=exon-U13369.1:7935..12969-1;Parent=rna-U13369.1:7935..12969;Note=corresponds to GenBank Accession Number M11167;gbkey=rRNA;product=28S ribosomal RNA
+chrRDN	Genbank	sequence_alteration	10075	10095	.	+	.	ID=id-U13369.1:10075..10095;Note=between 5 and 8 copies of 'cgg' at this site;gbkey=variation;replace=cggcggcggcggcgg
+chrRDN	Genbank	sequence_alteration	10099	10102	.	+	.	ID=id-U13369.1:10099..10102;gbkey=variation;replace=tgtgtg
+chrRDN	Genbank	sequence_alteration	10109	10110	.	+	.	ID=id-U13369.1:10109..10110;gbkey=variation;replace=t
+chrRDN	Genbank	sequence_alteration	10117	10127	.	+	.	ID=id-U13369.1:10117..10127;Note=between 9 and 12 'c' bases at this location;gbkey=variation;replace=cccccccccccc
+chrRDN	Genbank	transcript	12970	13314	.	+	.	ID=rna-U13369.1:12970..13314;Note=3'ETS;gbkey=misc_RNA;product=3' external transcribed spacer
+chrRDN	Genbank	exon	12970	13314	.	+	.	ID=exon-U13369.1:12970..13314-1;Parent=rna-U13369.1:12970..13314;Note=3'ETS;gbkey=misc_RNA;product=3' external transcribed spacer
+chrRDN	Genbank	sequence_feature	12970	13314	.	+	.	ID=id-U13369.1:12970..13314;Note=corresponds to GenBank Accession Number X17623;gbkey=misc_feature
+chrRDN	Genbank	sequence_feature	13314	18063	.	+	.	ID=id-U13369.1:13314..18063;Note=corresponds to GenBank Accession Numbers X02500%2C K03435%2C K03436%2C X12818;gbkey=misc_feature
+chrRDN	Genbank	sequence_feature	13315	42999	.	+	.	ID=id-U13369.1:13315..42999;Note=intergenic spacer%3B IGS;gbkey=misc_feature
+chrRDN	Genbank	terminator	13334	13350	.	+	.	ID=id-U13369.1:13334..13350;Note=SalI box;gbkey=terminator
+chrRDN	Genbank	repeat_region	13473	14270	.	+	.	ID=id-U13369.1:13473..14270;Note=Sal variation%3B repeat block R1;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	14272	14985	.	+	.	ID=id-U13369.1:14272..14985;Note=Sal variation%3B repeat block R2;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	14987	15540	.	+	.	ID=id-U13369.1:14987..15540;Note=Sal variation%3B repeat block R3;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	15524	15717	.	-	.	ID=id-U13369.1:15524..15717;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	16018	16083	.	-	.	ID=id-U13369.1:16018..16083;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	16084	16146	.	+	.	ID=id-U13369.1:16084..16146;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	16396	16542	.	-	.	ID=id-U13369.1:16396..16542;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	16664	16778	.	-	.	ID=id-U13369.1:16664..16778;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	16818	16889	.	-	.	ID=id-U13369.1:16818..16889;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	16935	17019	.	-	.	ID=id-U13369.1:16935..17019;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	17144	17368	.	-	.	ID=id-U13369.1:17144..17368;Note=5' truncated;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	17553	17584	.	-	.	ID=id-U13369.1:17553..17584;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	17617	17649	.	+	.	ID=id-U13369.1:17617..17649;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	sequence_feature	18063	30486	.	+	.	ID=id-U13369.1:18063..30486;Note=fragments previously published%2C GenBank Accession Numbers X13991%2C X13992%2C X13993;gbkey=misc_feature
+chrRDN	Genbank	repeat_region	18624	18659	.	+	.	ID=id-U13369.1:18624..18659;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	18666	18947	.	+	.	ID=id-U13369.1:18666..18947;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	18976	19066	.	+	.	ID=id-U13369.1:18976..19066;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	19306	19369	.	-	.	ID=id-U13369.1:19306..19369;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	19430	19485	.	-	.	ID=id-U13369.1:19430..19485;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	19501	19548	.	-	.	ID=id-U13369.1:19501..19548;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	19610	19891	.	-	.	ID=id-U13369.1:19610..19891;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	19953	20000	.	-	.	ID=id-U13369.1:19953..20000;Note=fragment%2C 5' end;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	20136	20154	.	-	.	ID=id-U13369.1:20136..20154;Note=tail;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	20569	22625	.	+	.	ID=id-U13369.1:20569..22625;Note=long repeat 1%3B LR1;gbkey=repeat_region
+chrRDN	Genbank	sequence_feature	20698	20916	.	-	.	ID=id-U13369.1:20698..20916;Note=similar to GenBank (dbEST) Accession Number T06394;gbkey=misc_feature
+chrRDN	Genbank	repeat_region	21116	21383	.	-	.	ID=id-U13369.1:21116..21383;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	sequence_feature	21380	21721	.	+	.	ID=id-U13369.1:21380..21721;Note=similar to hypomethylated clone sp0.3-23%2C GenBank Accession Number X07493;gbkey=misc_feature
+chrRDN	Genbank	repeat_region	21486	21529	.	+	.	ID=id-U13369.1:21486..21529;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	21671	21913	.	+	.	ID=id-U13369.1:21671..21913;Note=near complete;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	22197	22250	.	+	.	ID=id-U13369.1:22197..22250;Note=abc repeat block;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	22358	22425	.	+	.	ID=id-U13369.1:22358..22425;Note=T repeat block;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	22464	22513	.	+	.	ID=id-U13369.1:22464..22513;Note=bc repeat block;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	22714	23033	.	+	.	ID=id-U13369.1:22714..23033;Note=Butterfly repeat block 1;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	23035	25043	.	+	.	ID=id-U13369.1:23035..25043;Note=long repeat 2%3B LR2;gbkey=repeat_region
+chrRDN	Genbank	sequence_feature	23282	23373	.	+	.	ID=id-U13369.1:23282..23373;Note=similar to GenBank (dbEST) Accession Number T06165;gbkey=misc_feature
+chrRDN	Genbank	repeat_region	23608	23874	.	-	.	ID=id-U13369.1:23608..23874;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	sequence_feature	23871	24193	.	+	.	ID=id-U13369.1:23871..24193;Note=similar to hypomethylated clone sp0.3-23%2C GenBank Accession Number X07493;gbkey=misc_feature
+chrRDN	Genbank	repeat_region	23979	24022	.	+	.	ID=id-U13369.1:23979..24022;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	24161	24387	.	+	.	ID=id-U13369.1:24161..24387;Note=near complete;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	26866	26949	.	+	.	ID=id-U13369.1:26866..26949;Note=ActcA repeat block;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	26950	27037	.	+	.	ID=id-U13369.1:26950..27037;Note=ActcA repeat block;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	27038	27125	.	+	.	ID=id-U13369.1:27038..27125;Note=ActcA repeat block;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	27271	27589	.	+	.	ID=id-U13369.1:27271..27589;Note=Butterfly repeat block 2;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	27604	27799	.	+	.	ID=id-U13369.1:27604..27799;Note=fragment;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	27851	28069	.	+	.	ID=id-U13369.1:27851..28069;Note=repeated at 37923..38150;gbkey=repeat_region
+chrRDN	Genbank	sequence_feature	28598	28932	.	+	.	ID=id-U13369.1:28598..28932;Note=similar to hypomethylated clone sp0.3-10%2C GenBank Accession Number X06588;gbkey=misc_feature
+chrRDN	Genbank	sequence_feature	30487	37912	.	+	.	ID=id-U13369.1:30487..37912;Note=corresponds to GenBank Accession Number X68195;gbkey=misc_feature
+chrRDN	Genbank	repeat_region	31705	31870	.	-	.	ID=id-U13369.1:31705..31870;Note=fragment%3B Alu 5;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	32705	32984	.	-	.	ID=id-U13369.1:32705..32984;Note=Alu 6;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	CDS	33673	36005	.	+	0	ID=cds-U13369.1:33673..36005;Note=similar to human CDC27%2C GenBank Accession Number U00001%2C T02858%2C M78440%2C T03211%3B cdc27;gbkey=CDS;pseudo=true
+chrRDN	Genbank	repeat_region	36264	36413	.	+	.	ID=id-U13369.1:36264..36413;Note=fragment%3B Alu 7;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	36543	36826	.	-	.	ID=id-U13369.1:36543..36826;Note=Alu 8;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	36946	37226	.	-	.	ID=id-U13369.1:36946..37226;Note=Alu 9;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	37307	37452	.	-	.	ID=id-U13369.1:37307..37452;Note=fragment%3B Alu 10;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	sequence_feature	37912	42486	.	+	.	ID=id-U13369.1:37912..42486;Note=corresponds to GenBank Accession Number M25718;gbkey=misc_feature
+chrRDN	Genbank	repeat_region	37923	38150	.	+	.	ID=id-U13369.1:37923..38150;Note=repeated at 27851..28069;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	38359	38640	.	+	.	ID=id-U13369.1:38359..38640;Note=Alu 1;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	38740	39025	.	+	.	ID=id-U13369.1:38740..39025;Note=Alu 2;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	protein_binding_site	39478	39510	.	+	.	ID=id-U13369.1:39478..39510;bound_moiety=p53;gbkey=protein_bind
+chrRDN	Genbank	repeat_region	39570	39849	.	-	.	ID=id-U13369.1:39570..39849;Note=Alu 3;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	repeat_region	39875	40730	.	+	.	ID=id-U13369.1:39875..40730;Note=repeated 70-90 bp blocks containing CTTG and CTTT%2C separated by CGTG;gbkey=repeat_region
+chrRDN	Genbank	repeat_region	40731	41021	.	-	.	ID=id-U13369.1:40731..41021;Note=Alu 4;gbkey=repeat_region;rpt_family=Alu
+chrRDN	Genbank	sequence_feature	42486	42999	.	+	.	ID=id-U13369.1:42486..42999;Note=corresponds to GenBank Accession Numbers J00304%2C X01547%2C K01105%2C M30906%2C M13001;gbkey=misc_feature

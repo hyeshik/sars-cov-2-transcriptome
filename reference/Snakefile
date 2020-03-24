@@ -1,0 +1,117 @@
+GENOME_FASTA_URL = 'ftp://ftp.ensembl.org/pub/release-99/fasta/chlorocebus_sabaeus/dna/Chlorocebus_sabaeus.ChlSab1.1.dna_sm.toplevel.fa.gz'
+GENOME_ANNOTATION_URL = 'ftp://ftp.ensembl.org/pub/release-99/gff3/chlorocebus_sabaeus/Chlorocebus_sabaeus.ChlSab1.1.99.gff3.gz'
+CDNA_FASTA_URL = 'ftp://ftp.ensembl.org/pub/release-99/fasta/chlorocebus_sabaeus/cdna/Chlorocebus_sabaeus.ChlSab1.1.cdna.all.fa.gz'
+NCRNA_FASTA_URL = 'ftp://ftp.ensembl.org/pub/release-99/fasta/chlorocebus_sabaeus/ncrna/Chlorocebus_sabaeus.ChlSab1.1.ncrna.fa.gz'
+
+OUTPUT_VERSION = 'VerVet-SARSCoV2-DRS'
+
+rule all:
+    input:
+        OUTPUT_VERSION + '.genome.fa.gz',
+        OUTPUT_VERSION + '.genome.fa.gz.fai',
+        OUTPUT_VERSION + '.genome.fa.gz.gzi',
+        OUTPUT_VERSION + '.genome.gff3.gz',
+        OUTPUT_VERSION + '.genome.mm2.idx',
+        OUTPUT_VERSION + '.viral_genome.mm2.idx',
+        OUTPUT_VERSION + '.viral_genome.gff3.gz',
+        OUTPUT_VERSION + '.transcriptome.fa.gz',
+        OUTPUT_VERSION + '.transcriptome.mm2.idx',
+        OUTPUT_VERSION + '.genome.star/SA',
+        'gmap.db/gmap.db.chromosome'
+
+
+rule download_ENSEMBL_genome:
+    output: temp('genome.fa.gz')
+    shell: 'wget -O {output} {GENOME_FASTA_URL}'
+
+rule download_ENSEMBL_annotation:
+    output: temp('genome.gff3.gz')
+    shell: 'wget -O {output} {GENOME_ANNOTATION_URL}'
+
+rule download_ENSEMBL_transcriptome:
+    output: temp('transcriptome.fa.gz')
+    shell: '(wget -O - {CDNA_FASTA_URL}; \
+             wget -O - {NCRNA_FASTA_URL}) | gzip -dc - | bgzip -@ 4 -c /dev/stdin > {output}'
+
+rule merge_genome_fasta:
+    input:
+        genome_fasta='genome.fa.gz',
+        ont_fasta='ont-refs.fa',
+        cov_fasta='SARS-CoV-2.fa',
+        rDNA_fasta='human-rDNA.fa'
+    output: OUTPUT_VERSION + '.genome.fa.gz'
+    threads: 16
+    shell: '(cat {input.cov_fasta} {input.ont_fasta} {input.rDNA_fasta}; zcat {input.genome_fasta}) | \
+            fasta_formatter -w 72 | bgzip -@ {threads} -c /dev/stdin > {output}'
+
+rule merge_transcriptome_fasta:
+    input:
+        transcriptome_fasta='transcriptome.fa.gz',
+        ont_fasta='ont-refs.fa',
+        cov_fasta='SARS-CoV-2.fa',
+        rDNA_fasta='human-rDNA.fa'
+    output: OUTPUT_VERSION + '.transcriptome.fa.gz'
+    threads: 16
+    shell: '(zcat {input.transcriptome_fasta}; cat {input.cov_fasta} {input.rDNA_fasta} {input.ont_fasta}) | \
+            sed -e \'s,^>\\([^|]*\\)|.*$,>\\1,g\' | \
+            fasta_formatter -w 72 | bgzip -@ {threads} -c /dev/stdin > {output}'
+
+rule merge_annotations:
+    input:
+        genome_annotation='genome.gff3.gz',
+        cov_annotation='SARS-CoV-2.gff3',
+        ont_annotation='ont-refs.gff3',
+        rDNA_annotation='human-rDNA.gff3'
+    output: OUTPUT_VERSION + '.genome.gff3.gz'
+    threads: 16
+    shell: '(cat {input.cov_annotation} {input.ont_annotation} {input.rDNA_annotation}; \
+             zcat {input.genome_annotation}) | \
+            bgzip -@ {threads} -c /dev/stdin > {output}'
+
+rule generate_fasta_index:
+    input: OUTPUT_VERSION + '.genome.fa.gz'
+    output:
+        OUTPUT_VERSION + '.genome.fa.gz.fai',
+        OUTPUT_VERSION + '.genome.fa.gz.gzi'
+    shell: 'samtools faidx {input}'
+
+rule build_minimap2_index:
+    input: OUTPUT_VERSION + '.genome.fa.gz'
+    output: OUTPUT_VERSION + '.genome.mm2.idx'
+    shell: 'zcat {input} | minimap2 -k 13 -d {output} /dev/stdin'
+
+rule build_minimap2_vgenome_index:
+    input: 'SARS-CoV-2.fa'
+    output: OUTPUT_VERSION + '.viral_genome.mm2.idx'
+    shell: 'minimap2 -k 8 -w 1 -d {output} {input}'
+
+rule copy_viral_genome_annotation:
+    input: 'SARS-CoV-2.gff3'
+    output: OUTPUT_VERSION + '.viral_genome.gff3.gz'
+    shell: 'cp {input} {output}'
+
+rule build_minimap2_transcriptome_index:
+    input: OUTPUT_VERSION + '.transcriptome.fa.gz'
+    output: OUTPUT_VERSION + '.transcriptome.mm2.idx'
+    shell: 'zcat {input} | minimap2 -k 13 -d {output} /dev/stdin'
+
+rule build_gmap_db:
+    input: 'SARS-CoV-2.fa'
+    output: 'gmap.db/gmap.db.chromosome'
+    shell: 'gmap_build -D . -d gmap.db -k 4 -q 1 SARS-CoV-2.fa'
+
+rule extract_genome_fasta:
+    input: OUTPUT_VERSION + '.genome.fa.gz'
+    output: temp(OUTPUT_VERSION + '.genome.fa')
+    shell: 'zcat {input} > {output}'
+
+rule build_star_index:
+    input: OUTPUT_VERSION + '.genome.fa'
+    output: OUTPUT_VERSION + '.genome.star/SA'
+    threads: 36
+    params: outputbase=OUTPUT_VERSION + 'genome.star'
+    shell: 'mkdir -p {params.outputbase}; \
+            STAR --runThreadN {threads} --runMode genomeGenerate \
+                --genomeDir {params.outputbase} \
+                --genomeFastaFiles {input}'
+
