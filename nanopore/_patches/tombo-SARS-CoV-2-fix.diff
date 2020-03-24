@@ -1,0 +1,50 @@
+--- multiprocessing/connection.py       2020-01-08 07:41:32.000000000 +0900
++++ multiprocessing/connection.py       2020-03-07 10:32:40.289748757 +0900
+@@ -390,7 +390,7 @@
+     def _send_bytes(self, buf):
+         n = len(buf)
+         # For wire compatibility with 3.2 and lower
+-        header = struct.pack("!i", n)
++        header = struct.pack("!q", n) # XXX i -> q
+         if n > 16384:
+             # The payload is large so Nagle's algorithm won't be triggered
+             # and we'd better avoid the cost of concatenation.
+@@ -404,8 +404,8 @@
+             self._send(header + buf)
+ 
+     def _recv_bytes(self, maxsize=None):
+-        buf = self._recv(4)
+-        size, = struct.unpack("!i", buf.getvalue())
++        buf = self._recv(8) # XXX  4->8
++        size, = struct.unpack("!q", buf.getvalue()) # XXX i -> q
+         if maxsize is not None and size > maxsize:
+             return None
+         return self._recv(size)
+diff --git a/tombo/_plot_commands.py b/tombo/_plot_commands.py
+index 9538583..2e9bda9 100644
+--- a/tombo/_plot_commands.py
++++ b/tombo/_plot_commands.py
+@@ -44,7 +44,7 @@ REV_STRAND = 'Reverse Strand'
+ try:
+     from rpy2 import robjects as r
+     from rpy2.robjects.packages import importr
+-    _R_DF = r.DataFrame(())
++    _R_DF = r.DataFrame({})
+ except:
+     # pass here and print detailed error when main functions are actually called
+     # in  to give specific error message
+diff --git a/tombo/resquiggle.py b/tombo/resquiggle.py
+index 7d4f7e4..098a3de 100644
+--- a/tombo/resquiggle.py
++++ b/tombo/resquiggle.py
+@@ -2015,8 +2015,9 @@ def _resquiggle_main(args):
+
+     if VERBOSE: th.status_message('Loading minimap2 reference.')
+     # to be enabled when mappy genome sequence extraction bug is fixed
++    print("ALIGNER WITH SENSITIZED OPTIONS")
+     aligner = mappy.Aligner(
+-        str(args.reference), preset=str('map-ont'), best_n=1)
++        str(args.reference), best_n=1, k=8, w=1)
+     if not aligner:
+         th.error_message_and_exit(
+             'Failed to load reference genome FASTA for mapping.')
