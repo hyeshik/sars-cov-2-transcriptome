@@ -15,8 +15,8 @@ rule all:
         expand('flg-stats/{orf}.tombo.stats', orf=SUBGENOMIC_SUBSETS),
         expand('flg-stats/{orf}-mostsignif.pdf', orf=SUBGENOMIC_SUBSETS),
         expand('flg-stats/results-{orf}/{orf}.coverage.control.plus.bedgraph', orf=SUBGENOMIC_SUBSETS),
-        'flg-stats/IVT1-denovo.5mC.tombo.stats',
-        'flg-stats/full-denovo.5mC.tombo.stats'
+        'flg-stats/IVT1-altmodel.5mC.tombo.stats',
+        'flg-stats/full-altmodel.5mC.tombo.stats'
 
 rule resquiggle:
     output: 'flg-tombo/.{{orf}}.{}.tombo.index'.format(FULL_LENGTH_GROUP)
@@ -47,29 +47,29 @@ rule detect_modifications:
                 --corrected-group {FULL_LENGTH_GROUP})'
 
 rule detect_modifications_IVT1_model:
-    output: 'flg-stats/IVT1-denovo.5mC.tombo.stats'
+    output: 'flg-stats/IVT1-altmodel.5mC.tombo.stats'
     threads: 36
     shell: '(cd flg-stats && \
             tombo detect_modifications alternative_model --rna \
                --alternate-bases 5mC \
                --fast5-basedirs {CONTROL_FAST5_DIR} \
-               --statistics-file-basename IVT1-denovo \
+               --statistics-file-basename IVT1-altmodel \
                --num-most-significant-stored 200 \
                --processes 36 \
-               --per-read-statistics-basename IVT1-denovo-perread \
+               --per-read-statistics-basename IVT1-altmodel-perread \
                --corrected-group {FULL_LENGTH_GROUP})'
 
 rule detect_modifications_full_model:
-    output: 'flg-stats/full-denovo.5mC.tombo.stats'
+    output: 'flg-stats/full-altmodel.5mC.tombo.stats'
     threads: 36
     shell: '(cd flg-stats && \
             tombo detect_modifications alternative_model --rna \
                --alternate-bases 5mC \
                --fast5-basedirs {FULL_FAST5_DIR} \
-               --statistics-file-basename full-denovo \
+               --statistics-file-basename full-altmodel \
                --num-most-significant-stored 200 \
                --processes 36 \
-               --per-read-statistics-basename full-denovo-perread \
+               --per-read-statistics-basename full-altmodel-perread \
                --corrected-group RawGenomeCorrected_000)'
 
 rule plot_most_significant:
