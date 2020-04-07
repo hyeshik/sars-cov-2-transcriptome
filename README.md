@@ -25,4 +25,5 @@ and RNA modifications discovered in this study will open new directions to our
 understanding of the life cycle and pathogenicity of SARS-CoV-2.
 
 See https://www.biorxiv.org/content/10.1101/2020.03.12.988865v2<br>
-Data can be downloaded from https://osf.io/8f6n9/
+Data can be downloaded from https://osf.io/8f6n9/<br>
+Data can be also browsed using [the UCSC Genome Browser](http://genome.ucsc.edu/s/hyeshik/sarscov2-transcriptome).
