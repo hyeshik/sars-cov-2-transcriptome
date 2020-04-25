@@ -59,7 +59,7 @@ rule merge_transcriptome_fasta:
 rule merge_annotations:
     input:
         genome_annotation='genome.gff3.gz',
-        cov_annotation='SARS-CoV-2.gff3',
+        cov_annotation='SARS-CoV-2-annotations.gff',
         ont_annotation='ont-refs.gff3',
         rDNA_annotation='human-rDNA.gff3'
     output: OUTPUT_VERSION + '.genome.gff3.gz'
@@ -86,7 +86,7 @@ rule build_minimap2_vgenome_index:
     shell: 'minimap2 -k 8 -w 1 -d {output} {input}'
 
 rule copy_viral_genome_annotation:
-    input: 'SARS-CoV-2.gff3'
+    input: 'SARS-CoV-2-annotations.gff'
     output: OUTPUT_VERSION + '.viral_genome.gff3.gz'
     shell: 'cp {input} {output}'
 
